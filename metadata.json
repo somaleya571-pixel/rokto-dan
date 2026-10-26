@@ -1,0 +1,6 @@
+{
+  "name": "Roktodan - Blood Donor Network",
+  "description": "Connect blood donors and recipients across Bangladesh. Find eligible donors, post blood requests, and save lives.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
