@@ -11,7 +11,9 @@ import {
   Users, 
   ShieldCheck, 
   MessageSquare,
-  Droplet
+  Droplet,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BloodRequest, DonorResponse, UrgencyLevel, UserProfile } from '../types';
@@ -21,6 +23,8 @@ import { formatRelativeTime } from '../lib/dateUtils';
 import { ResponderModal } from '../components/ResponderModal';
 import { SearchableDropdown } from '../components/SearchableDropdown';
 import { normalizeBangladeshPhone, extractNationalDigits } from '../lib/phoneUtils';
+import { EditPostModal } from '../components/EditPostModal';
+import { DeletePostModal } from '../components/DeletePostModal';
 
 interface PostPageProps {
   currentUser: UserProfile | null;
@@ -60,6 +64,8 @@ export const PostPage: React.FC<PostPageProps> = ({
   const [selectedPostForModal, setSelectedPostForModal] = useState<BloodRequest | null>(null);
   const [activeModalResponders, setActiveModalResponders] = useState<DonorResponse[]>([]);
   const [postResponderCounts, setPostResponderCounts] = useState<Record<string, number>>({});
+  const [editingPost, setEditingPost] = useState<BloodRequest | null>(null);
+  const [deletingPost, setDeletingPost] = useState<BloodRequest | null>(null);
 
   // Dynamic Upazila choices
   const currentDistrictData = BANGLADESH_LOCATIONS.find((d) => d.district === district);
@@ -147,6 +153,7 @@ export const PostPage: React.FC<PostPageProps> = ({
         user_id: currentUser.id,
         creator_name: currentUser.full_name,
         creator_phone: currentUser.phone,
+        creator_avatar: currentUser.avatar_url || null,
         patient_name: patientName.trim(),
         blood_group: bloodGroup,
         hospital_name: hospitalName.trim(),
@@ -493,11 +500,56 @@ export const PostPage: React.FC<PostPageProps> = ({
             <div className="space-y-3.5">
               {myRequests.map((post) => {
                 const count = postResponderCounts[post.id] || 0;
+                const posterAvatar = post.creator_avatar || currentUser?.avatar_url;
                 return (
                   <div
                     key={post.id}
                     className="p-4 sm:p-5 rounded-2xl bg-[#FFFDF5] border border-[#F1E4B8] shadow-xs hover:shadow-md transition-shadow"
                   >
+                    {/* Header with Poster Profile Picture and Edit/Delete Actions */}
+                    <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#F1E4B8]/60">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full overflow-hidden bg-[#FFF4D4] border border-[#F1E4B8] shrink-0 flex items-center justify-center font-bold text-[#E31828] text-xs">
+                          {posterAvatar ? (
+                            <img
+                              src={posterAvatar}
+                              alt={post.creator_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="font-bold">
+                              {post.creator_name ? post.creator_name.charAt(0).toUpperCase() : 'U'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-[#1E1B18] truncate">
+                          {post.creator_name} <span className="font-normal text-[#6B5E4F]">(You)</span>
+                        </span>
+                      </div>
+
+                      {/* Creator Edit & Delete Actions */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingPost(post)}
+                          className="px-2.5 py-1 rounded-lg bg-[#FFFDE7] hover:bg-[#FFF4D4] border border-[#F1E4B8] text-xs font-bold text-[#1E1B18] flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                          title="Edit your post details"
+                        >
+                          <Edit2 className="w-3 h-3 text-[#E31828]" />
+                          <span className="text-[11px]">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingPost(post)}
+                          className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                          title="Delete your post"
+                        >
+                          <Trash2 className="w-3 h-3 text-[#E31828]" />
+                          <span className="text-[11px]">Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-[#E31828] text-white font-black flex items-center justify-center text-lg shrink-0">
@@ -510,6 +562,15 @@ export const PostPage: React.FC<PostPageProps> = ({
                           <div className="text-xs text-[#6B5E4F] mt-0.5">
                             {post.hospital_name} · {post.upazila}, {post.district}
                           </div>
+                          {post.status && post.status !== 'Open' && (
+                            <span className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                              post.status === 'Fulfilled' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              Status: {post.status}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -529,7 +590,7 @@ export const PostPage: React.FC<PostPageProps> = ({
                       <button
                         type="button"
                         onClick={() => handleOpenResponders(post)}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#E31828] hover:bg-[#A80012] text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#E31828] hover:bg-[#A80012] text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
                       >
                         <span>View Donors ({count})</span>
                       </button>
@@ -548,6 +609,32 @@ export const PostPage: React.FC<PostPageProps> = ({
           request={selectedPostForModal}
           responses={activeModalResponders}
           onClose={() => setSelectedPostForModal(null)}
+        />
+      )}
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <EditPostModal
+          request={editingPost}
+          isOpen={Boolean(editingPost)}
+          onClose={() => setEditingPost(null)}
+          onSaved={(updated) => {
+            loadMyPosts();
+            setEditingPost(null);
+          }}
+        />
+      )}
+
+      {/* Delete Post Modal */}
+      {deletingPost && (
+        <DeletePostModal
+          request={deletingPost}
+          isOpen={Boolean(deletingPost)}
+          onClose={() => setDeletingPost(null)}
+          onDeleted={(deletedId) => {
+            loadMyPosts();
+            setDeletingPost(null);
+          }}
         />
       )}
     </div>

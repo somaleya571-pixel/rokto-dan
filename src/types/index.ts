@@ -1,4 +1,5 @@
 import { BloodGroup } from '../data/bangladeshData';
+export type { BloodGroup };
 
 export interface UserProfile {
   id: string;
@@ -23,6 +24,7 @@ export interface BloodRequest {
   user_id: string;
   creator_name: string;
   creator_phone: string;
+  creator_avatar?: string | null;
   patient_name: string;
   blood_group: BloodGroup;
   hospital_name: string;
@@ -35,6 +37,7 @@ export interface BloodRequest {
   additional_notes?: string;
   status: 'Open' | 'Fulfilled' | 'Cancelled';
   created_at: string;
+  updated_at?: string;
 }
 
 export interface DonorResponse {

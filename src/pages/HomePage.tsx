@@ -217,6 +217,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                 request={req}
                 currentUser={currentUser}
                 onRequireLogin={onRequireLogin}
+                onPostUpdated={(updated) => {
+                  setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+                }}
+                onPostDeleted={(deletedId) => {
+                  setRequests((prev) => prev.filter((r) => r.id !== deletedId));
+                }}
               />
             ))}
           </div>

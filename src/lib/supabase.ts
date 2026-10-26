@@ -480,5 +480,73 @@ export const bloodRequestService = {
   async hasUserResponded(requestId: string, userId: string): Promise<boolean> {
     const responses = getStoredResponses();
     return responses.some((r) => r.request_id === requestId && r.donor_id === userId);
+  },
+
+  async updateRequest(
+    requestId: string,
+    updates: Partial<BloodRequest>
+  ): Promise<BloodRequest> {
+    if (supabase) {
+      try {
+        await supabase
+          .from('blood_requests')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+      } catch (err) {
+        console.warn('Supabase update request fallback:', err);
+      }
+    }
+
+    const requests = getStoredRequests();
+    const index = requests.findIndex((r) => r.id === requestId);
+    if (index === -1) {
+      throw new Error('Request not found');
+    }
+
+    const updated: BloodRequest = {
+      ...requests[index],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    requests[index] = updated;
+    saveStoredRequests(requests);
+    return updated;
+  },
+
+  async deleteRequest(requestId: string): Promise<boolean> {
+    if (supabase) {
+      try {
+        await supabase.from('blood_request_responses').delete().eq('request_id', requestId);
+        await supabase.from('blood_requests').delete().eq('id', requestId);
+      } catch (err) {
+        console.warn('Supabase delete request fallback:', err);
+      }
+    }
+
+    // Remove from local requests
+    const requests = getStoredRequests();
+    const filteredRequests = requests.filter((r) => r.id !== requestId);
+    saveStoredRequests(filteredRequests);
+
+    // Also remove responses linked to this request
+    const responses = getStoredResponses();
+    const filteredResponses = responses.filter((r) => r.request_id !== requestId);
+    saveStoredResponses(filteredResponses);
+
+    return true;
+  },
+
+  getPosterAvatar(userId: string): string | null {
+    try {
+      const profiles = getStoredProfiles();
+      const profile = profiles.find((p) => p.id === userId);
+      return profile?.avatar_url || null;
+    } catch {
+      return null;
+    }
   }
 };
+
